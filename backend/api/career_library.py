@@ -33,7 +33,7 @@ def get_career_library(kb: KnowledgeBaseService = Depends(get_kb_service)):
             "name": career.name,
             "icon": icon_for_domain(domain),
             "domain": domain,
-            "description": career.description or f"{career.name} thuộc lĩnh vực {domain}.",
+            "description": career.description or f"{career.name} thu???c l??nh v???c {domain}.",
             "matchScore": 0.5,
             "growthRate": float(getattr(career, "growth_rate", 0.5) or 0.5),
             "competition": float(getattr(career, "competition", 0.5) or 0.5),

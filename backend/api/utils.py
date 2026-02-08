@@ -58,4 +58,4 @@ def icon_for_domain(domain: str) -> str:
         "IT": "🖧",
         "Entrepreneurship": "🚀"
     }
-    return mapping.get(domain, "💼")
+    return mapping.get(domain, "????")

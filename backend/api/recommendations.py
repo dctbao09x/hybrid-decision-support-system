@@ -127,14 +127,14 @@ def get_recommendations(request: RecommendationsRequest):
             "domain": domain,
             "description": reqs.get(
                 "description",
-                f"{job_name} thuộc lĩnh vực {domain}."
+                f"{job_name} thu???c l??nh v???c {domain}."
             ),
-            "matchScore": round(float(job_eval.get("score") or 0.0), 3),
-            "growthRate": float(reqs.get("growth_rate") or 0.5),
-            "competition": float(reqs.get("competition") or 0.5),
-            "aiRelevance": float(reqs.get("ai_relevance") or 0.5),
-            "requiredSkills": reqs.get("required_skills") or [],
-            "tags": job_eval.get("tags") or []
+            "matchScore": round(float(job_eval.get("score", 0.0)), 3),
+            "growthRate": float(reqs.get("growth_rate", 0.5)),
+            "competition": float(reqs.get("competition", 0.5)),
+            "aiRelevance": float(reqs.get("ai_relevance", 0.5)),
+            "requiredSkills": reqs.get("required_skills", []),
+            "tags": job_eval.get("tags", [])
         })
 
     return {

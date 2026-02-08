@@ -29,7 +29,7 @@ class UserProfileRequest(BaseModel):
     interests: List[str]
     skills: str
     careerGoal: str
-    chatHistory: Optional[List[ChatMessage]] = None
+    chatHistory: Optional[List[ChatMessage]] = []
 
 
 class UserProfileResponse(BaseModel):
@@ -60,20 +60,15 @@ def analyze_profile(request: UserProfileRequest):
             "careerGoal": request.careerGoal,
             "chatHistory": [
                 {"role": msg.role, "text": msg.text}
-                for msg in (request.chatHistory or [])
+                for msg in request.chatHistory
             ]
         }
 
         result = process_user_profile(profile_dict)
         return result
 
-    except (ValueError, TypeError) as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid profile data: {str(exc)}"
-        )
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail="Internal server error during profile analysis"
+            detail=f"Error processing profile: {str(exc)}"
         )

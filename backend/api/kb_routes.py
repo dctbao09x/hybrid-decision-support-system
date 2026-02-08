@@ -67,8 +67,6 @@ def create_domain(
 
     except ValueError as e:
         handle_service_error(e)
-    except Exception as e:
-        handle_unexpected_error(e)
 
 
 @router.get(

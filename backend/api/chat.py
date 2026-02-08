@@ -34,8 +34,6 @@ def chat(request: ChatRequest):
             break
 
     text = request.message.strip().lower()
-    if not text and last_topic:
-        text = last_topic
 
     if not text:
         return ChatResponse(reply="Bạn có thể chia sẻ thêm không?")
