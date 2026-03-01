@@ -22,17 +22,19 @@
   width: 100%;
   padding: var(--spacing-md);
   font-size: var(--font-size-base);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
   transition: all var(--transition-fast);
+  font-family: inherit;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: rgba(200, 165, 90, 0.5);
+  box-shadow: 0 0 0 3px rgba(200, 165, 90, 0.1);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .input.error {

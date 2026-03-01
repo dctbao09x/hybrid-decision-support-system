@@ -32,9 +32,9 @@ logger = logging.getLogger("kb-test")
 # Imports
 # ----------------------------
 
-from kb.database import get_db_context
-from kb.service import KnowledgeBaseService
-from rule_engine.adapters.kb_adapter import kb_adapter
+from backend.kb.database import get_db_context
+from backend.kb.service import KnowledgeBaseService
+from backend.rule_engine.adapters.kb_adapter import kb_adapter
 
 
 # ============================================================

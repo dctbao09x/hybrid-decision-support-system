@@ -113,7 +113,7 @@ def example_5_complete_profile():
         "user": {
             "skills": ["python", "java", "sql", "machine learning"],
             "interests": ["AI", "data science", "backend systems"],
-            "education_level": "master",
+            "education_level": "Master",
             "ability_score": 0.85,
             "confidence_score": 0.8,
         },

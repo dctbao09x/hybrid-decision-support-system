@@ -16,7 +16,7 @@ def create_baseline_user() -> UserProfile:
     return UserProfile(
         skills=["python", "sql", "machine learning"],
         interests=["AI", "data science"],
-        education_level="master",
+        education_level="Master",
         ability_score=0.8,
         confidence_score=0.7,
     )

@@ -164,8 +164,11 @@ class SkillRepository:
             db_skill = models.Skill(
                 name=skill.name,
                 slug=slug,
+                code=getattr(skill, 'code', None) or slug,
                 category=category,
-                description=skill.description
+                description=skill.description,
+                level_map=getattr(skill, 'level_map', None) or {},
+                related_skills=getattr(skill, 'related_skills', None) or [],
             )
 
             db.add(db_skill)
@@ -288,15 +291,18 @@ class CareerRepository:
             db_career = models.Career(
                 name=career.name,
                 slug=slug,
+                code=getattr(career, 'code', None) or slug,
                 domain_id=career.domain_id,
                 description=career.description,
                 icon=career.icon,
+                level=getattr(career, 'level', None),
                 education_min=career.education_min,
                 ai_relevance=career.ai_relevance,
                 competition=career.competition,
                 growth_rate=career.growth_rate,
                 salary_range_min=career.salary_range_min,
-                salary_range_max=career.salary_range_max
+                salary_range_max=career.salary_range_max,
+                market_tags=getattr(career, 'market_tags', None) or [],
             )
 
             db.add(db_career)
@@ -588,3 +594,214 @@ class EducationLevelRepository:
             l.name: l.hierarchy_level
             for l in levels
         }
+
+
+# ======================================================
+# TEMPLATE REPOSITORY
+# ======================================================
+
+class TemplateRepository:
+
+    @staticmethod
+    def create(db: Session, tmpl: schemas.TemplateCreate) -> models.Template:
+
+        with transactional(db):
+            db_tmpl = models.Template(
+                code=tmpl.code,
+                name=tmpl.name,
+                type=safe_enum(models.TemplateType, tmpl.type, models.TemplateType.CUSTOM),
+                content=tmpl.content,
+                variables=tmpl.variables or [],
+            )
+            db.add(db_tmpl)
+
+        db.refresh(db_tmpl)
+        return db_tmpl
+
+    @staticmethod
+    def get_by_id(db: Session, tmpl_id: int) -> Optional[models.Template]:
+        return db.query(models.Template).get(tmpl_id)
+
+    @staticmethod
+    def get_by_code(db: Session, code: str) -> Optional[models.Template]:
+        return db.query(models.Template).filter(
+            models.Template.code == code
+        ).first()
+
+    @staticmethod
+    def get_all(
+        db: Session,
+        type_filter: Optional[str] = None,
+        is_active: Optional[bool] = True,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[models.Template]:
+
+        query = db.query(models.Template)
+
+        if is_active is not None:
+            query = query.filter(models.Template.is_active == is_active)
+
+        if type_filter:
+            query = query.filter(
+                models.Template.type == safe_enum(
+                    models.TemplateType, type_filter, models.TemplateType.CUSTOM
+                )
+            )
+
+        return query.offset(skip).limit(limit).all()
+
+    @staticmethod
+    def update(
+        db: Session,
+        tmpl_id: int,
+        update: schemas.TemplateUpdate
+    ) -> Optional[models.Template]:
+
+        tmpl = db.query(models.Template).get(tmpl_id)
+        if not tmpl:
+            return None
+
+        data = update.model_dump(exclude_unset=True)
+
+        with transactional(db):
+            for k, v in data.items():
+                if k == "type":
+                    v = safe_enum(models.TemplateType, v, tmpl.type)
+                setattr(tmpl, k, v)
+
+        db.refresh(tmpl)
+        return tmpl
+
+    @staticmethod
+    def delete(db: Session, tmpl_id: int) -> bool:
+        tmpl = db.query(models.Template).get(tmpl_id)
+        if not tmpl:
+            return False
+
+        with transactional(db):
+            tmpl.is_active = False
+            tmpl.status = "deleted"
+
+        return True
+
+
+# ======================================================
+# ONTOLOGY REPOSITORY
+# ======================================================
+
+class OntologyRepository:
+
+    @staticmethod
+    def create(db: Session, node: schemas.OntologyNodeCreate) -> models.OntologyNode:
+
+        with transactional(db):
+            db_node = models.OntologyNode(
+                code=node.code,
+                type=safe_enum(models.OntologyNodeType, node.type, models.OntologyNodeType.CONCEPT),
+                label=node.label,
+                parent_id=node.parent_id,
+                relations=[r.model_dump() for r in (node.relations or [])],
+                metadata_=getattr(node, 'metadata_', {}) or {},
+            )
+            db.add(db_node)
+
+        db.refresh(db_node)
+        return db_node
+
+    @staticmethod
+    def get_by_id(db: Session, node_id: int) -> Optional[models.OntologyNode]:
+        return db.query(models.OntologyNode).filter(
+            models.OntologyNode.node_id == node_id
+        ).first()
+
+    @staticmethod
+    def get_by_code(db: Session, code: str) -> Optional[models.OntologyNode]:
+        return db.query(models.OntologyNode).filter(
+            models.OntologyNode.code == code
+        ).first()
+
+    @staticmethod
+    def get_all(
+        db: Session,
+        type_filter: Optional[str] = None,
+        parent_id: Optional[int] = None,
+        is_active: Optional[bool] = True,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[models.OntologyNode]:
+
+        query = db.query(models.OntologyNode)
+
+        if is_active is not None:
+            query = query.filter(models.OntologyNode.is_active == is_active)
+
+        if type_filter:
+            query = query.filter(
+                models.OntologyNode.type == safe_enum(
+                    models.OntologyNodeType, type_filter, models.OntologyNodeType.CONCEPT
+                )
+            )
+
+        if parent_id is not None:
+            query = query.filter(models.OntologyNode.parent_id == parent_id)
+
+        return query.offset(skip).limit(limit).all()
+
+    @staticmethod
+    def get_roots(db: Session, is_active: bool = True) -> List[models.OntologyNode]:
+        """Get root nodes (parent_id = None)"""
+        query = db.query(models.OntologyNode).filter(
+            models.OntologyNode.parent_id.is_(None)
+        )
+        if is_active is not None:
+            query = query.filter(models.OntologyNode.is_active == is_active)
+        return query.all()
+
+    @staticmethod
+    def get_children(db: Session, node_id: int, is_active: bool = True) -> List[models.OntologyNode]:
+        """Get children of a node"""
+        query = db.query(models.OntologyNode).filter(
+            models.OntologyNode.parent_id == node_id
+        )
+        if is_active is not None:
+            query = query.filter(models.OntologyNode.is_active == is_active)
+        return query.all()
+
+    @staticmethod
+    def update(
+        db: Session,
+        node_id: int,
+        update: schemas.OntologyNodeUpdate
+    ) -> Optional[models.OntologyNode]:
+
+        node = db.query(models.OntologyNode).filter(
+            models.OntologyNode.node_id == node_id
+        ).first()
+        if not node:
+            return None
+
+        data = update.model_dump(exclude_unset=True)
+
+        with transactional(db):
+            for k, v in data.items():
+                if k == "relations" and v:
+                    v = [r if isinstance(r, dict) else r.model_dump() for r in v]
+                setattr(node, k, v)
+
+        db.refresh(node)
+        return node
+
+    @staticmethod
+    def delete(db: Session, node_id: int) -> bool:
+        node = db.query(models.OntologyNode).filter(
+            models.OntologyNode.node_id == node_id
+        ).first()
+        if not node:
+            return False
+
+        with transactional(db):
+            node.is_active = False
+            node.status = "deleted"
+
+        return True

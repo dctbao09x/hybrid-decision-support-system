@@ -4,8 +4,8 @@ LLM adapter: normalize LLM outputs via taxonomy facade.
 
 from typing import Dict, List, Any
 
-from llm_client import analyze_with_llm as _analyze_with_llm
-from taxonomy.facade import taxonomy
+from backend.llm_client import analyze_with_llm as _analyze_with_llm
+from backend.taxonomy.facade import taxonomy
 
 
 def analyze_with_llm(user_text: str) -> Dict[str, Any]:

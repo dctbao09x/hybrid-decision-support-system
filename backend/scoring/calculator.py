@@ -7,6 +7,8 @@ Architecture:
 - Computes all SIMGR scores  
 - Applies weights and produces breakdown
 - No hardcoded component imports
+
+GĐ4: DELEGATES TO scoring_formula.py FOR ALL FORMULA OPERATIONS.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ import logging
 from backend.scoring.models import UserProfile, CareerData, ScoreBreakdown
 from backend.scoring.config import ScoringConfig
 from backend.scoring.normalizer import DataNormalizer
+from backend.scoring.scoring_formula import ScoringFormula
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +57,8 @@ class SIMGRCalculator:
             # Lazy initialize if not present
             self.config._init_default_components()
         
-        required = {"study", "interest", "market", "growth", "risk"}
+        # GĐ4: Use canonical component list from ScoringFormula
+        required = set(ScoringFormula.COMPONENTS)
         available = set(self.config.component_map.keys())
         
         missing = required - available
@@ -79,8 +83,8 @@ class SIMGRCalculator:
         simgr_scores: Dict[str, float] = {}
         details: Dict[str, Dict] = {}
 
-        # Compute each SIMGR component
-        for component_name in ["study", "interest", "market", "growth", "risk"]:
+        # GĐ4: Use canonical component iteration from ScoringFormula
+        for component_name in ScoringFormula.COMPONENTS:
             try:
                 result = self._compute_component(
                     component_name,
@@ -98,42 +102,33 @@ class SIMGRCalculator:
                 if self.config.debug_mode:
                     raise
 
-                # Fallback to neutral score
-                simgr_scores[component_name] = 0.5
+                # GĐ4: Use canonical fallback from ScoringFormula
+                simgr_scores[component_name] = ScoringFormula.get_default_fallback(component_name)
                 details[f"{component_name}_details"] = {
                     "error": str(e),
                     "fallback": True
                 }
 
-        # Apply weights and compute total
-        weights = self.config.simgr_weights
-
-        total_score = (
-            simgr_scores.get("study", 0.5) * weights.study_score +
-            simgr_scores.get("interest", 0.5) * weights.interest_score +
-            simgr_scores.get("market", 0.5) * weights.market_score +
-            simgr_scores.get("growth", 0.5) * weights.growth_score +
-            simgr_scores.get("risk", 0.5) * weights.risk_score
+        # GĐ4: DELEGATE TO CENTRAL FORMULA MODULE
+        # NO HARDCODED FORMULA HERE - ScoringFormula is SINGLE SOURCE OF TRUTH
+        weights_dict = ScoringFormula.get_weights_from_config(self.config.simgr_weights)
+        total_score = ScoringFormula.compute(
+            simgr_scores, 
+            weights_dict, 
+            validate=False,  # Already validated by component computation
+            clamp_output=True
         )
-
-        total_score = self.normalizer.clamp(total_score)
 
         # Build breakdown
         breakdown = {
-            "study_score": round(simgr_scores.get("study", 0.5), 4),
-            "interest_score": round(simgr_scores.get("interest", 0.5), 4),
-            "market_score": round(simgr_scores.get("market", 0.5), 4),
-            "growth_score": round(simgr_scores.get("growth", 0.5), 4),
-            "risk_score": round(simgr_scores.get("risk", 0.5), 4),
+            f"{comp}_score": round(simgr_scores.get(comp, 0.5), 4)
+            for comp in ScoringFormula.COMPONENTS
         }
 
         if self.config.debug_mode:
             breakdown.update({
-                "study_details": details.get("study_details", {}),
-                "interest_details": details.get("interest_details", {}),
-                "market_details": details.get("market_details", {}),
-                "growth_details": details.get("growth_details", {}),
-                "risk_details": details.get("risk_details", {}),
+                f"{comp}_details": details.get(f"{comp}_details", {})
+                for comp in ScoringFormula.COMPONENTS
             })
 
         return total_score, breakdown

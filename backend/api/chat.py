@@ -34,13 +34,15 @@ def chat(request: ChatRequest):
             break
 
     text = request.message.strip().lower()
+    if not text and last_topic:
+        text = last_topic
 
     if not text:
         return ChatResponse(reply="Bạn có thể chia sẻ thêm không?")
 
     combined_text = f"{text} {last_topic or ''}".strip()
 
-    if "ai" in combined_text or "trí tuệ nhân tạo" in combined_text or "machine learning" in combined_text:
+    if "AI" in combined_text or "trí tuệ nhân tạo" in combined_text or "machine learning" in combined_text:
         reply = "AI/ML là mảng rất tiềm năng. Bạn đã có nền tảng lập trình nào chưa?"
     elif "thiết kế" in combined_text or "design" in combined_text or "ui" in combined_text:
         reply = "Thiết kế là mảng sáng tạo. Bạn quan tâm UI/UX hay graphic?"

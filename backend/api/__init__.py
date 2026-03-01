@@ -1,17 +1,17 @@
 """
 API package for modular routers.
-"""
 
-from . import kb_routes
-from . import analyze
-from . import recommendations
-from . import chat
-from . import career_library
+Imports are lazy to avoid heavy dependency loading at module init time.
+Use direct imports when needed:
+    from backend.api.kb_routes import router as kb_router
+    from backend.api.analyze import router as analyze_router
+    etc.
+"""
 
 __all__ = [
     "kb_routes",
     "analyze",
     "recommendations",
     "chat",
-    "career_library"
+    "career_library",
 ]

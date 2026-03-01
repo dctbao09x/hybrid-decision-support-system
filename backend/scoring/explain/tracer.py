@@ -90,9 +90,9 @@ class ScoringTrace:
         ]
         
         for key, val in self.simgr_scores.items():
-            lines.append(f"  {key}: {round(val, 4)}")
-        
-        lines.append(f"  TOTAL: {round(self.total_score, 4)}")
+            lines.append(f"  {key}: {val:.4f}")
+
+        lines.append(f"  TOTAL: {self.total_score:.4f}")
         
         if self.components and self.weights_used:
             lines.append("")
@@ -163,12 +163,12 @@ class ScoringTracer:
         
         self.current_trace.simgr_scores = scores
     
-    def set_final_score(
+    def set_total_score(
         self,
         total: float,
         weights: Dict[str, float]
     ) -> None:
-        """Set final score and weights.
+        """Set total score and weights (GĐ7 compliant).
         
         Args:
             total: Final weighted score

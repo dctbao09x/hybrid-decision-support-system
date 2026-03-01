@@ -6,8 +6,7 @@ from typing import List, Dict, Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-
-from processor import process_user_profile
+from backend.processor import process_user_profile
 
 
 router = APIRouter()
@@ -64,8 +63,7 @@ def analyze_profile(request: UserProfileRequest):
             ]
         }
 
-        result = process_user_profile(profile_dict)
-        return result
+        return process_user_profile(profile_dict)
 
     except Exception as exc:
         raise HTTPException(

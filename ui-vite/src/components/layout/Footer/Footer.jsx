@@ -7,9 +7,9 @@ export default function Footer() {
       <div className="container">
         <div className={styles.content}>
           <div className={styles.section}>
-            <h4 className={styles.title}>🎯 CareerAI</h4>
+            <h4 className={styles.title}>DongSon Nexus</h4>
             <p className={styles.description}>
-              Hệ thống hỗ trợ định hướng nghề nghiệp thông minh
+              Thấu hiểu trọng tâm. Quyết định vững chắc.
             </p>
           </div>
 
@@ -33,7 +33,7 @@ export default function Footer() {
         </div>
 
         <div className={styles.bottom}>
-          <p>© 2024 CareerAI. All rights reserved.</p>
+          <p>© 2024 DongSon Nexus. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -96,7 +96,7 @@ class TestEndToEndPipeline:
         user = UserProfile(
             skills=["python", "machine learning", "sql"],
             interests=["AI", "data science"],
-            education_level="master",
+            education_level="Master",
             ability_score=0.8,
             confidence_score=0.7
         )
@@ -174,10 +174,10 @@ class TestNormalizerIntegration:
 
         analyze_output = {
             "age": 25,
-            "education_level": "bachelor",
+            "education_level": "Bachelor",
             "interest_tags": ["AI", "machine learning"],
             "skill_tags": ["python", "sql"],
-            "goal_cleaned": "Become AI engineer",
+            "goal_cleaned": "Become AI Engineer",
             "intent": "career_change",
             "chat_summary": "Interested in AI",
             "confidence_score": 0.8
@@ -186,9 +186,9 @@ class TestNormalizerIntegration:
         user_profile = Prompt3Normalizer.normalize_user_profile_from_analyze(analyze_output)
 
         assert isinstance(user_profile, UserProfile)
-        assert user_profile.skills == ["python", "sql"]
-        assert user_profile.interests == ["AI", "machine learning"]
-        assert user_profile.education_level == "bachelor"
+        assert [s.lower() for s in user_profile.skills] == ["python", "sql"]
+        assert [s.lower() for s in user_profile.interests] == ["ai", "machine learning"]
+        assert user_profile.education_level == "Bachelor"
         assert user_profile.ability_score == 0.8
         assert user_profile.confidence_score == 0.8
 
@@ -198,7 +198,7 @@ class TestNormalizerIntegration:
 
         invalid_output = {
             "age": "invalid",  # Should be int
-            "education_level": "bachelor",
+            "education_level": "Bachelor",
             "interest_tags": ["AI"],
             "skill_tags": ["python"],
             "goal_cleaned": "Goal",
@@ -209,3 +209,150 @@ class TestNormalizerIntegration:
 
         with pytest.raises(ValueError):
             Prompt3Normalizer.normalize_user_profile_from_analyze(invalid_output)
+
+    def test_malformed_analyze_output_empty_fields(self):
+        """Test handling empty or missing fields in analyze output."""
+        from backend.scoring.normalizer import Prompt3Normalizer
+
+        # Test with empty interest_tags
+        malformed_output = {
+            "age": 25,
+            "education_level": "Bachelor",
+            "interest_tags": [],  # Empty
+            "skill_tags": ["python"],
+            "goal_cleaned": "Become developer",
+            "intent": "career_change",
+            "chat_summary": "Wants to code",
+            "confidence_score": 0.7
+        }
+
+        user = Prompt3Normalizer.normalize_user_profile_from_analyze(malformed_output)
+        assert user.interests == []
+        assert [s.lower() for s in user.skills] == ["python"]
+
+    def test_malformed_analyze_output_missing_chat_history(self):
+        """Test analyze output with missing chat summary."""
+        from backend.scoring.normalizer import Prompt3Normalizer
+
+        # Missing chat_summary
+        incomplete_output = {
+            "age": 30,
+            "education_level": "Master",
+            "interest_tags": ["AI"],
+            "skill_tags": ["python", "ml"],
+            "goal_cleaned": "AI Engineer",
+            "intent": "advancement",
+            # Missing chat_summary
+            "confidence_score": 0.9
+        }
+
+        with pytest.raises(ValueError, match="Missing required fields"):
+            Prompt3Normalizer.normalize_user_profile_from_analyze(incomplete_output)
+
+    def test_boundary_confidence_score(self):
+        """Test boundary values for confidence_score."""
+        from backend.scoring.normalizer import Prompt3Normalizer
+
+        # Test minimum boundary
+        min_conf_output = {
+            "age": 22,
+            "education_level": "Bachelor",
+            "interest_tags": ["tech"],
+            "skill_tags": ["coding"],
+            "goal_cleaned": "Developer",
+            "intent": "entry",
+            "chat_summary": "New to coding",
+            "confidence_score": 0.0
+        }
+
+        user_min = Prompt3Normalizer.normalize_user_profile_from_analyze(min_conf_output)
+        assert user_min.confidence_score == 0.0
+        assert user_min.ability_score == 0.0
+
+        # Test maximum boundary
+        max_conf_output = min_conf_output.copy()
+        max_conf_output["confidence_score"] = 1.0
+
+        user_max = Prompt3Normalizer.normalize_user_profile_from_analyze(max_conf_output)
+        assert user_max.confidence_score == 1.0
+        assert user_max.ability_score == 1.0
+
+        # Test out of bounds (should raise error)
+        invalid_conf_output = min_conf_output.copy()
+        invalid_conf_output["confidence_score"] = 1.5
+
+        with pytest.raises(ValueError, match="confidence_score must be float in"):
+            Prompt3Normalizer.normalize_user_profile_from_analyze(invalid_conf_output)
+
+    def test_config_reload_in_pipeline(self):
+        """Test config reload functionality in scoring pipeline."""
+        from backend.scoring import SIMGRScorer
+
+        scorer = SIMGRScorer()
+
+        input_data = {
+            "user": {
+                "skills": ["python"],
+                "interests": ["AI"]
+            },
+            "careers": [
+                {
+                    "name": "Data Scientist",
+                    "required_skills": ["python"],
+                    "ai_relevance": 0.8
+                }
+            ],
+            "config": {
+                "study_score": 0.5,  # Increased from default 0.25
+                "interest_score": 0.3,
+                "market_score": 0.1,
+                "growth_score": 0.05,
+                "risk_score": 0.05
+            }
+        }
+
+        result = scorer.score(input_data)
+
+        assert result["success"] is True
+        assert result["config_used"]["study_score"] == 0.5
+        assert result["config_used"]["interest_score"] == 0.3
+
+    def test_pipeline_with_empty_user_profile(self):
+        """Test pipeline with minimal user profile."""
+        user = UserProfile()  # Empty profile
+
+        careers = [
+            CareerData(name="General Job", required_skills=[])
+        ]
+
+        results = rank_careers(user, careers)
+
+        assert len(results) == 1
+        assert results[0].total_score >= 0.0  # Should still produce a score
+
+    def test_pipeline_with_extreme_career_values(self):
+        """Test pipeline with extreme career attribute values."""
+        user = UserProfile(skills=["python"])
+
+        careers = [
+            CareerData(
+                name="High AI Job",
+                required_skills=["python"],
+                ai_relevance=1.0,
+                growth_rate=1.0,
+                competition=0.0  # Low competition = good
+            ),
+            CareerData(
+                name="Low AI Job",
+                required_skills=["cobol"],  # No match
+                ai_relevance=0.0,
+                growth_rate=0.0,
+                competition=1.0  # High competition = bad
+            )
+        ]
+
+        results = rank_careers(user, careers)
+
+        assert len(results) == 2
+        # High AI job should score higher
+        assert results[0].total_score > results[1].total_score

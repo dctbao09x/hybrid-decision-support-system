@@ -1,139 +1,48 @@
-# backend/api.py
-from rule_engine.job_database import JOB_DATABASE
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
-import sys
-from pathlib import Path
+# backend/api_legacy.py
+"""
+DEPRECATED - Legacy API
+=======================
 
-# Add backend to path for imports
-backend_dir = Path(__file__).parent
-sys.path.insert(0, str(backend_dir))
+This file is DEPRECATED. All functionality has been migrated to the unified
+API Gateway at backend/inference/api_server_v2.py
 
-from processor import process_user_profile
+Use the new unified API:
+  - Entrypoint: backend/run_api.py
+  - Gateway: backend/inference/api_server_v2.py
+  
+All endpoints now under /api/v1/*:
+  - /api/v1/infer/analyze      — replaces /analyze
+  - /api/v1/infer/recommendations — replaces /recommendations  
+  - /api/v1/chat               — replaces /chat
+  - /api/v1/health/full        — replaces /health
 
-# ==================== PYDANTIC SCHEMAS ====================
+DO NOT USE THIS FILE IN PRODUCTION.
+"""
 
-class PersonalInfo(BaseModel):
-    fullName: str
-    age: str
-    education: str
+import warnings
 
-
-class ChatMessage(BaseModel):
-    role: str
-    text: str
-
-
-class UserProfileRequest(BaseModel):
-    personalInfo: PersonalInfo
-    interests: List[str]
-    skills: str
-    careerGoal: str
-    chatHistory: Optional[List[ChatMessage]] = []
-
-
-class UserProfileResponse(BaseModel):
-    age: int
-    education_level: str
-    interest_tags: List[str]
-    skill_tags: List[str]
-    goal_cleaned: str
-    intent: str
-    chat_summary: str
-    confidence_score: float
-
-
-class RecommendationsRequest(BaseModel):
-    processedProfile: Optional[Dict[str, Any]] = None
-    userProfile: Optional[Dict[str, Any]] = None
-    assessmentAnswers: Optional[Dict[str, Any]] = None
-    chatHistory: Optional[List[ChatMessage]] = None
-
-
-class ChatRequest(BaseModel):
-    message: str
-    chatHistory: Optional[List[ChatMessage]] = None
-
-
-class ChatResponse(BaseModel):
-    reply: str
-
-
-# ==================== FASTAPI APP ====================
-
-app = FastAPI(
-    title="Career Guidance AI API",
-    description="Hybrid Decision Support System for Career Guidance",
-    version="1.0.0"
+warnings.warn(
+    "api_legacy.py is deprecated. Use backend.run_api instead.",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
-# CORS Configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[ 
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Raise error if someone tries to run this
+def _deprecated():
+    raise RuntimeError(
+        "api_legacy.py is deprecated and disabled. "
+        "Use the unified API Gateway: python -m uvicorn backend.run_api:app --port 8000"
+    )
 
+# If this file is imported as a module, issue warning
+_deprecated()
 
-# ==================== ENDPOINTS ====================
-
-@app.get("/")
-def root():
-    """Health check endpoint"""
-    return {
-        "status": "ok",
-        "message": "Career Guidance AI API is running",
-        "version": "1.0.0"
-    }
-
-
-@app.post("/analyze", response_model=UserProfileResponse)
-def analyze_profile(request: UserProfileRequest):
-    """
-    Analyze user profile and return processed data
-    
-    Args:
-        request: User profile data from frontend
-        
-    Returns:
-        Processed profile with extracted features
-    """
-    try:
-        # Convert Pydantic model to dict
-        profile_dict = {
-            "personalInfo": {
-                "fullName": request.personalInfo.fullName,
-                "age": request.personalInfo.age,
-                "education": request.personalInfo.education
-            },
-            "interests": request.interests,
-            "skills": request.skills,
-            "careerGoal": request.careerGoal,
-            "chatHistory": [
-                {"role": msg.role, "text": msg.text}
-                for msg in request.chatHistory
-            ]
-        }
-        
-        # Process profile
-        result = process_user_profile(profile_dict)
-        
-        return result
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing profile: {str(e)}"
-        )
+# Legacy code preserved below for reference only
+# ================================================
+#
+# from backend.rule_engine.job_database import JOB_DATABASE
+# from fastapi import FastAPI, HTTPException
+# ... (rest of file preserved as comment)
 
 
 def _build_profile_dict(
@@ -175,7 +84,12 @@ def _icon_for_domain(domain: str) -> str:
         "Finance": "💰",
         "Education": "🎓",
         "IT": "🖧",
-        "Entrepreneurship": "🚀"
+        "Entrepreneurship": "🚀",
+        "Healthcare": "🏥",
+        "Legal": "⚖️",
+        "HR": "👥",
+        "Logistics": "🚚",
+        "Manufacturing": "🏭",
     }
     return mapping.get(domain, "💼")
 
@@ -369,7 +283,7 @@ def chat(request: ChatRequest):
     if not text:
         return ChatResponse(reply="Bạn có thể chia sẻ thêm không?")
 
-    if "ai" in text or "trí tuệ nhân tạo" in text or "machine learning" in text:
+    if "AI" in text or "trí tuệ nhân tạo" in text or "machine learning" in text:
         reply = "AI/ML là mảng rất tiềm năng. Bạn đã có nền tảng lập trình nào chưa?"
     elif "thiết kế" in text or "design" in text or "ui" in text:
         reply = "Thiết kế là mảng sáng tạo. Bạn quan tâm UI/UX hay graphic?"

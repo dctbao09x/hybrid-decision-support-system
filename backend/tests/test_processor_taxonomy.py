@@ -1,4 +1,4 @@
-from processor import process_user_profile
+from backend.processor import process_user_profile
 
 
 def test_processor_basic_profile():

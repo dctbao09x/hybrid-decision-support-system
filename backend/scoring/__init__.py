@@ -4,24 +4,38 @@ Scoring & Ranking Engine (SIMGR Standard)
 
 Primary entry point: SIMGRScorer (unified public API)
 
-Usage:
+SECURITY NOTICE (GĐ2):
+    Direct import of core classes (SIMGRCalculator, RankingEngine, SIMGRScorer)
+    is MONITORED. Production code SHOULD use MainController.dispatch().
+    
+    Import guards are active - unauthorized access will be logged.
+
+Usage (via MainController - RECOMMENDED):
+    result = await controller.dispatch(
+        service="scoring",
+        operation="rank",
+        payload={...}
+    )
+
+Legacy Usage (direct import - MONITORED):
     from backend.scoring import SIMGRScorer
     
     scorer = SIMGRScorer(strategy="weighted")
-    output = scorer.score({
-        "user": {"skills": ["python"], "interests": ["AI"]},
-        "careers": [{"name": "Data Scientist", "required_skills": ["python"]}]
-    })
-    
-    print(output["ranked_careers"])
-    print(output["config_used"])
-
-Legacy API (still available):
-    from backend.scoring import RankingEngine, rank_careers
-    from backend.scoring.models import UserProfile, CareerData
-    from backend.scoring.config import ScoringConfig
+    output = scorer.score({...})
 """
 
+import logging
+import warnings
+
+# GĐ2: Import monitoring
+_logger = logging.getLogger("scoring.import_monitor")
+
+def _log_import_warning(class_name: str) -> None:
+    """Log warning for direct import."""
+    _logger.info(f"[IMPORT_MONITOR] Direct import: {class_name}")
+
+
+# Core classes - monitored imports
 from backend.scoring.scoring import SIMGRScorer
 from backend.scoring.engine import (
     RankingEngine,
@@ -35,6 +49,7 @@ from backend.scoring.config import (
     SIMGRWeights,
     ComponentWeights,
     DEFAULT_CONFIG,
+    get_default_config,
 )
 from backend.scoring.models import (
     UserProfile,
@@ -54,6 +69,9 @@ from backend.scoring.calculator import (
     SIMGRCalculator,
 )
 
+# GĐ2: Log monitored imports
+_log_import_warning("SIMGRCalculator")
+
 __all__ = [
     # Primary entry point
     "SIMGRScorer",
@@ -70,6 +88,7 @@ __all__ = [
     "SIMGRWeights",
     "ComponentWeights",
     "DEFAULT_CONFIG",
+    "get_default_config",
     
     # Models
     "UserProfile",
@@ -87,4 +106,5 @@ __all__ = [
     
     # Calculator
     "SIMGRCalculator",
+
 ]

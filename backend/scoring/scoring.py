@@ -12,6 +12,8 @@ Attributes enforced:
 - Absolute imports (backend.scoring.*)
 - Unified naming (study, interest, market, growth, risk)
 - All scores ∈ [0,1]
+
+GĐ4: DELEGATES TO scoring_formula.py FOR ALL FORMULA OPERATIONS.
 """
 
 from __future__ import annotations
@@ -27,6 +29,12 @@ from backend.scoring.models import (
     ScoreBreakdown,
 )
 from backend.scoring.config import ScoringConfig, SIMGRWeights, DEFAULT_CONFIG
+from backend.scoring.scoring_formula import ScoringFormula
+from backend.scoring.security.context import (
+    require_execution_context,
+    ExecutionContextRegistry,
+    ContextRequiredError,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -86,9 +94,13 @@ class SIMGRScorer:
         if debug:
             logging.basicConfig(level=logging.DEBUG)
 
-    def score(self, input_dict: Dict[str, Any]) -> Dict[str, Any]:
+    @require_execution_context(require_trace_id=True, log_access=True)
+    def score(self, input_dict: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         """
         Score careers for a user (main entry point).
+        
+        SECURITY: Requires valid ExecutionContext from DecisionController.
+        Direct calls will fail with ContextRequiredError.
 
         Supports two input modes:
 
@@ -97,7 +109,7 @@ class SIMGRScorer:
             "user": {
                 "skills": ["python", "java"],
                 "interests": ["AI", "Data Science"],
-                "education_level": "master",  # optional
+                "education_level": "Master",  # optional
                 "ability_score": 0.8,  # optional, [0,1]
                 "confidence_score": 0.75,  # optional, [0,1]
             },
@@ -192,7 +204,8 @@ class SIMGRScorer:
 
     def _is_direct_scores_mode(self, input_dict: Dict[str, Any]) -> bool:
         """Check if input contains direct component scores."""
-        required_keys = {"study", "interest", "market", "growth", "risk"}
+        # GĐ4: Use canonical component list from ScoringFormula
+        required_keys = set(ScoringFormula.COMPONENTS)
         input_keys = set(input_dict.keys())
         return required_keys.issubset(input_keys)
 
@@ -210,15 +223,13 @@ class SIMGRScorer:
             ValueError: If scores invalid
         """
         try:
-            study = float(input_dict.get("study", 0))
-            interest = float(input_dict.get("interest", 0))
-            market = float(input_dict.get("market", 0))
-            growth = float(input_dict.get("growth", 0))
-            risk = float(input_dict.get("risk", 0))
+            # GĐ4: Use canonical component list from ScoringFormula
+            scores_dict = {}
+            for comp in ScoringFormula.COMPONENTS:
+                scores_dict[comp] = float(input_dict.get(comp, 0))
 
             # Validate scores are in [0,1]
-            scores = [study, interest, market, growth, risk]
-            if not all(0.0 <= s <= 1.0 for s in scores):
+            if not all(0.0 <= s <= 1.0 for s in scores_dict.values()):
                 raise ValueError("All scores must be in [0,1]")
 
             # Build config override if provided
@@ -227,34 +238,40 @@ class SIMGRScorer:
             if config_override_dict:
                 config = self._build_config(config_override_dict)
 
-            # Compute weighted total
-            total_score = (
-                study * config.simgr_weights.study_score +
-                interest * config.simgr_weights.interest_score +
-                market * config.simgr_weights.market_score +
-                growth * config.simgr_weights.growth_score +
-                risk * config.simgr_weights.risk_score
+            # GĐ4: DELEGATE TO CENTRAL FORMULA MODULE
+            # NO HARDCODED FORMULA HERE - ScoringFormula is SINGLE SOURCE OF TRUTH
+            weights_dict = ScoringFormula.get_weights_from_config(config.simgr_weights)
+            total_score = ScoringFormula.compute(
+                scores_dict,
+                weights_dict,
+                validate=True,
+                clamp_output=True
             )
-
-            total_score = max(0.0, min(1.0, total_score))  # Clamp to [0,1]
 
             return {
                 "success": True,
                 "total_score": round(total_score, 4),
                 "breakdown": {
-                    "study_score": round(study, 4),
-                    "interest_score": round(interest, 4),
-                    "market_score": round(market, 4),
-                    "growth_score": round(growth, 4),
-                    "risk_score": round(risk, 4),
+                    f"{comp}_score": round(scores_dict[comp], 4)
+                    for comp in ScoringFormula.COMPONENTS
+                },
+                "contributions": {
+                    comp: {
+                        "score": round(scores_dict[comp], 4),
+                        "weight": round(weights_dict[comp], 4),
+                        "sign": ScoringFormula.SIGN[comp],
+                        "weighted_contribution": round(
+                            ScoringFormula.SIGN[comp] * weights_dict[comp] * scores_dict[comp], 4
+                        ),
+                        "role": "penalty" if ScoringFormula.SIGN[comp] < 0 else "boost",
+                    }
+                    for comp in ScoringFormula.COMPONENTS
                 },
                 "config_used": {
-                    "study_score": config.simgr_weights.study_score,
-                    "interest_score": config.simgr_weights.interest_score,
-                    "market_score": config.simgr_weights.market_score,
-                    "growth_score": config.simgr_weights.growth_score,
-                    "risk_score": config.simgr_weights.risk_score,
+                    ScoringFormula.WEIGHT_KEYS[comp]: getattr(config.simgr_weights, ScoringFormula.WEIGHT_KEYS[comp])
+                    for comp in ScoringFormula.COMPONENTS
                 },
+                "formula_version": ScoringFormula.VERSION,
                 "error": None,
             }
 
@@ -330,7 +347,7 @@ class SIMGRScorer:
         try:
             skills = user_dict.get("skills", [])
             interests = user_dict.get("interests", [])
-            education_level = user_dict.get("education_level", "bachelor")
+            education_level = user_dict.get("education_level", "Bachelor")
             ability_score = user_dict.get("ability_score", 0.5)
             confidence_score = user_dict.get("confidence_score", 0.5)
 
@@ -437,19 +454,40 @@ class SIMGRScorer:
         Returns:
             Output dict
         """
+        weights_dict = ScoringFormula.get_weights_from_config(config.simgr_weights)
         ranked_careers = []
         for scored_career in results:
+            bd = scored_career.breakdown
+            scores_dict = {
+                "study": bd.study_score,
+                "interest": bd.interest_score,
+                "market": bd.market_score,
+                "growth": bd.growth_score,
+                "risk": bd.risk_score,
+            }
             ranked_careers.append({
                 "rank": scored_career.rank,
                 "name": scored_career.career_name,
                 "total_score": round(scored_career.total_score, 4),
                 "breakdown": {
-                    "study_score": round(scored_career.breakdown.study_score, 4),
-                    "interest_score": round(scored_career.breakdown.interest_score, 4),
-                    "market_score": round(scored_career.breakdown.market_score, 4),
-                    "growth_score": round(scored_career.breakdown.growth_score, 4),
-                    "risk_score": round(scored_career.breakdown.risk_score, 4),
-                }
+                    "study_score": round(bd.study_score, 4),
+                    "interest_score": round(bd.interest_score, 4),
+                    "market_score": round(bd.market_score, 4),
+                    "growth_score": round(bd.growth_score, 4),
+                    "risk_score": round(bd.risk_score, 4),
+                },
+                "contributions": {
+                    comp: {
+                        "score": round(scores_dict[comp], 4),
+                        "weight": round(weights_dict[comp], 4),
+                        "sign": ScoringFormula.SIGN[comp],
+                        "weighted_contribution": round(
+                            ScoringFormula.SIGN[comp] * weights_dict[comp] * scores_dict[comp], 4
+                        ),
+                        "role": "penalty" if ScoringFormula.SIGN[comp] < 0 else "boost",
+                    }
+                    for comp in ScoringFormula.COMPONENTS
+                },
             })
 
         return {
@@ -463,6 +501,7 @@ class SIMGRScorer:
                 "growth_score": config.simgr_weights.growth_score,
                 "risk_score": config.simgr_weights.risk_score,
             },
+            "formula_version": ScoringFormula.VERSION,
             "error": None,
         }
 

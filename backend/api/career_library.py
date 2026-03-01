@@ -7,9 +7,9 @@ from typing import List, Dict, Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from kb.database import get_db
-from kb.service import KnowledgeBaseService
-from kb import schemas
+from backend.kb.database import get_db
+from backend.kb.service import KnowledgeBaseService
+from backend.kb import schemas
 from .utils import slugify, icon_for_domain
 
 
@@ -33,7 +33,7 @@ def get_career_library(kb: KnowledgeBaseService = Depends(get_kb_service)):
             "name": career.name,
             "icon": icon_for_domain(domain),
             "domain": domain,
-            "description": career.description or f"{career.name} thu???c l??nh v???c {domain}.",
+            "description": career.description or f"{career.name} thuộc lĩnh vực {domain}.",
             "matchScore": 0.5,
             "growthRate": float(getattr(career, "growth_rate", 0.5) or 0.5),
             "competition": float(getattr(career, "competition", 0.5) or 0.5),

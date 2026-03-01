@@ -4,7 +4,7 @@ Rule engine taxonomy adapter (deterministic normalization).
 
 from typing import Iterable, List
 
-from taxonomy.facade import taxonomy
+from backend.taxonomy.facade import taxonomy
 
 
 def normalize_skill_list(values: Iterable[str]) -> List[str]:

@@ -35,10 +35,10 @@ logger = logging.getLogger("kb-seed")
 # IMPORTS
 # ============================
 
-from kb.database import get_db_context, init_db
+from backend.kb.database import get_db_context, init_db
 from kb import schemas, service
 
-from rule_engine.prototype_jobs import (
+from backend.rule_engine.prototype_jobs import (
     JOB_DATABASE,
     DOMAIN_INTEREST_MAP,
     EDUCATION_HIERARCHY
@@ -114,7 +114,12 @@ DOMAIN_ICONS = {
     "Finance": "💰",
     "Education": "📚",
     "IT": "🖥️",
-    "Entrepreneurship": "🚀"
+    "Entrepreneurship": "🚀",
+    "Healthcare": "🏥",
+    "Legal": "⚖️",
+    "HR": "👥",
+    "Logistics": "🚚",
+    "Manufacturing": "🏭",
 }
 
 
@@ -256,8 +261,65 @@ CAREER_ICONS = {
     "Freelance Developer": "💼",
     "Data Engineer": "🏗️",
     "MLOps Engineer": "🔄",
+    "Machine OPS Engineer": "🔄",
     "Strategy Analyst": "📈",
-    "Operations Analyst": "⚡"
+    "Operations Analyst": "⚡",
+    # Software extended
+    "Full Stack Developer": "🖥️",
+    "Blockchain Developer": "⛓️",
+    "Database Administrator": "🗄️",
+    # Networking
+    "Network Engineer": "🌐",
+    # Engineering extended
+    "Electrical Engineer": "⚡",
+    "Mechanical Engineer": "🔩",
+    "Civil Engineer": "🏗️",
+    # Design extended
+    "Product Designer": "🎯",
+    "Architect": "🏛️",
+    "3D Artist": "🎭",
+    # Data extended
+    "BI Developer": "📊",
+    "Growth Analyst": "📈",
+    # Marketing extended
+    "PR Manager": "📣",
+    "Brand Manager": "🏷️",
+    "Social Media Manager": "📱",
+    # Media extended
+    "Journalist": "📰",
+    "Video Editor": "🎬",
+    # Business extended
+    "Sales Manager": "💰",
+    "Account Manager": "🤝",
+    # Finance extended
+    "Accountant": "📒",
+    "Auditor": "🔍",
+    "Investment Banker": "🏦",
+    "Risk Manager": "⚠️",
+    "Fintech Engineer": "💳",
+    # Healthcare
+    "Doctor": "👨‍⚕️",
+    "Nurse": "👩‍⚕️",
+    "Pharmacist": "💊",
+    "Health Informatics Specialist": "🏥",
+    # Legal
+    "Lawyer": "⚖️",
+    "Legal Counsel": "📜",
+    "Compliance Officer": "✅",
+    # HR
+    "HR Manager": "👥",
+    "Talent Acquisition Specialist": "🎯",
+    "HR Data Analyst": "📊",
+    # Logistics
+    "Supply Chain Manager": "🚚",
+    "Logistics Coordinator": "📦",
+    # Manufacturing
+    "Manufacturing Engineer": "🏭",
+    "Quality Engineer": "🔬",
+    "Production Manager": "⚙️",
+    # Education extended
+    "E-learning Designer": "💻",
+    "Training Manager": "📚",
 }
 
 

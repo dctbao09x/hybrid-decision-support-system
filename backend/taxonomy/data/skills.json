@@ -53,8 +53,8 @@
     "id": "artificial_intelligence",
     "canonical_label": "Artificial Intelligence",
     "aliases": {
-      "vi": ["ai", "trí tuệ nhân tạo", "tri tue nhan tao"],
-      "en": ["artificial intelligence", "ai"]
+      "vi": ["AI", "trí tuệ nhân tạo", "tri tue nhan tao"],
+      "en": ["artificial intelligence", "AI"]
     },
     "priority": 95,
     "deprecated": false

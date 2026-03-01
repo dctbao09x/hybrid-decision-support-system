@@ -40,21 +40,21 @@
     "deprecated": false
   },
   {
-    "id": "bachelor",
+    "id": "Bachelor",
     "canonical_label": "Bachelor",
     "aliases": {
-      "vi": ["đại học", "dai hoc"],
-      "en": ["bachelor", "bachelor's degree"]
+      "vi": ["đại học", "dai hoc", "daihoc"],
+      "en": ["Bachelor", "Bachelor's degree"]
     },
     "priority": 3,
     "deprecated": false
   },
   {
-    "id": "master",
+    "id": "Master",
     "canonical_label": "Master",
     "aliases": {
       "vi": ["thạc sĩ", "thac si"],
-      "en": ["master", "master's degree"]
+      "en": ["Master", "Master's degree"]
     },
     "priority": 4,
     "deprecated": false

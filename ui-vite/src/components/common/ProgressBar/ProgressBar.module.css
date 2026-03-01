@@ -8,17 +8,18 @@
 
 .bar {
   flex: 1;
-  height: 8px;
-  background: var(--bg-tertiary);
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: linear-gradient(90deg, #b8914a 0%, #c8a55a 50%, #d4b876 100%);
   border-radius: var(--radius-full);
   transition: width var(--transition-slow);
+  box-shadow: 0 0 8px rgba(200, 165, 90, 0.4);
 }
 
 .label {

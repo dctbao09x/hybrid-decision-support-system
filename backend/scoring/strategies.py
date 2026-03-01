@@ -100,13 +100,23 @@ class ScoringStrategy(ABC):
                 )
                 return None
             
-            # Build breakdown model
+            # GĐ1: NO FALLBACK - all breakdown scores must be present
+            required_keys = ["study_score", "interest_score", "market_score", 
+                           "growth_score", "risk_score"]
+            missing_keys = [k for k in required_keys if k not in breakdown_dict]
+            if missing_keys:
+                raise ValueError(
+                    f"[SCORING] Incomplete breakdown - missing: {missing_keys}. "
+                    f"Calculator must return all SIMGR components."
+                )
+            
+            # Build breakdown model - NO DEFAULTS
             breakdown = ScoreBreakdown(
-                study_score=breakdown_dict.get("study_score", 0.5),
-                interest_score=breakdown_dict.get("interest_score", 0.5),
-                market_score=breakdown_dict.get("market_score", 0.5),
-                growth_score=breakdown_dict.get("growth_score", 0.5),
-                risk_score=breakdown_dict.get("risk_score", 0.5),
+                study_score=breakdown_dict["study_score"],
+                interest_score=breakdown_dict["interest_score"],
+                market_score=breakdown_dict["market_score"],
+                growth_score=breakdown_dict["growth_score"],
+                risk_score=breakdown_dict["risk_score"],
                 study_details=breakdown_dict.get("study_details"),
                 interest_details=breakdown_dict.get("interest_details"),
                 market_details=breakdown_dict.get("market_details"),
@@ -232,12 +242,13 @@ class PersonalizedScoringStrategy(ScoringStrategy):
         # Start from deepcopy of base config
         cfg = deepcopy(self.config)
         
-        # Extract base weights
-        base_s = 0.25
-        base_i = 0.25
-        base_m = 0.25
-        base_g = 0.15
-        base_r = 0.10
+        # Extract base weights from actual config (not hardcoded)
+        w = cfg.simgr_weights
+        base_s = w.study_score
+        base_i = w.interest_score
+        base_m = w.market_score
+        base_g = w.growth_score
+        base_r = w.risk_score
         
         # Start with base allocation
         s = base_s

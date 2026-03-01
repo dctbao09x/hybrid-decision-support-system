@@ -3,7 +3,7 @@
 Main entry point and test cases for Input Processing Layer
 """
 import json
-from processor import process_user_profile
+from backend.processor import process_user_profile
 
 def test_basic_profile():
     """Test case 1: Basic profile with Vietnamese text"""

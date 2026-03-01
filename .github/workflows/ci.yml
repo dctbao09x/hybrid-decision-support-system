@@ -1,0 +1,221 @@
+# .github/workflows/ci.yml
+# ─────────────────────────────────────────────────────────────────
+# Hybrid Decision Support System — CI Pipeline
+# ─────────────────────────────────────────────────────────────────
+name: CI — Tests & Coverage
+
+on:
+  push:
+    branches: [main, develop, "feature/**"]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # Lint
+  # ============================================================
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install lint tools
+        run: pip install ruff
+
+      - name: Ruff check
+        run: ruff check backend/ --output-format github
+
+  # ============================================================
+  # Unit + Integration Tests
+  # ============================================================
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('requirements*.txt', 'backend/requirements*.txt') }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_data_pipeline.txt
+          pip install -r backend/requirements_api.txt
+          pip install pytest pytest-asyncio pytest-cov httpx coverage
+
+      - name: Run unit + integration tests with coverage
+        run: |
+          python -m pytest backend/tests/ backend/ops/tests/ \
+            --ignore=backend/tests/test_e2e_crawl.py \
+            -v \
+            --tb=short \
+            --cov=backend \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov-report=html:htmlcov \
+            --cov-fail-under=80 \
+            -x
+        env:
+          PYTHONPATH: .
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-py${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            htmlcov/
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.13'
+        with:
+          file: coverage.xml
+          fail_ci_if_error: false
+
+  # ============================================================
+  # MLOps Scheduler & Shadow Tests
+  # ============================================================
+  test_scheduler:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_data_pipeline.txt
+          pip install -r backend/requirements_api.txt
+          pip install pytest pytest-cov httpx
+
+      - name: Run scheduler tests
+        run: |
+          python -m pytest backend/tests/test_mlops_scheduler_shadow.py \
+            -v --tb=short \
+            --cov=backend/mlops/scheduler \
+            --cov-fail-under=85 \
+            -k "Scheduler or Cooldown or AntiStorm or StateStore"
+        env:
+          PYTHONPATH: .
+          MLOPS_COOLDOWN_ENABLED: "true"
+          MLOPS_SCHEDULER_ENABLED: "true"
+
+      - name: Verify cooldown enforcement
+        run: |
+          python -c "
+          from backend.mlops.scheduler.policies import CooldownPolicy, CooldownViolation
+          from datetime import datetime, timedelta, timezone
+          
+          policy = CooldownPolicy(min_interval_hours=24, enabled=True)
+          recent = datetime.now(timezone.utc) - timedelta(hours=1)
+          
+          # Must raise for auto trigger during cooldown
+          try:
+              policy.enforce(recent, trigger='auto')
+              print('FAIL: Cooldown bypass detected!')
+              exit(1)
+          except CooldownViolation:
+              print('PASS: Cooldown enforcement working')
+          "
+        env:
+          PYTHONPATH: .
+
+  test_shadow:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_data_pipeline.txt
+          pip install -r backend/requirements_api.txt
+          pip install pytest pytest-cov httpx
+
+      - name: Run shadow routing tests
+        run: |
+          python -m pytest backend/tests/test_mlops_scheduler_shadow.py \
+            -v --tb=short \
+            --cov=backend/mlops/router \
+            --cov-fail-under=85 \
+            -k "Shadow or TrafficManager or Dispatcher"
+        env:
+          PYTHONPATH: .
+
+      - name: Verify shadow dispatch
+        run: |
+          python -c "
+          import asyncio
+          from backend.mlops.router.traffic_manager import TrafficManager
+          
+          manager = TrafficManager()
+          manager.set_prod_model('v1')
+          manager.enable_shadow('v2', sample_rate=1.0)
+          
+          decision = manager.route(trace_id='ci_test')
+          
+          assert decision.route_to_prod is True, 'FAIL: Prod not routed'
+          assert decision.mirror_to_shadow is True, 'FAIL: Shadow not mirrored'
+          print('PASS: Shadow routing working')
+          "
+        env:
+          PYTHONPATH: .
+
+  # ============================================================
+  # E2E Tests (optional — manual trigger or nightly)
+  # ============================================================
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [test, test_scheduler, test_shadow]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_data_pipeline.txt
+          pip install -r backend/requirements_api.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Run E2E tests
+        run: |
+          python -m pytest backend/tests/test_e2e_crawl.py \
+            -v --tb=short -m e2e
+        env:
+          PYTHONPATH: .
+        continue-on-error: true

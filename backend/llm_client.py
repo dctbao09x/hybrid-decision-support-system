@@ -3,8 +3,8 @@ LLM client wrapper (compatibility layer).
 """
 
 import json
-from llm.client import build_default_client
-from llm.providers import LLMProviderError
+from backend.llm.client import build_default_client
+from backend.llm.providers import LLMProviderError
 
 
 SYSTEM_PROMPT = """

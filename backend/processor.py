@@ -2,11 +2,14 @@
 Input Processing Layer - Core processing logic
 """
 
+import logging
 from typing import Dict, List
 
-from schema import ProcessedProfile
-from llm_adapter import analyze_with_llm
-from taxonomy.facade import taxonomy
+logger = logging.getLogger(__name__)
+
+from backend.schema import ProcessedProfile
+from backend.llm_adapter import analyze_with_llm
+from backend.taxonomy.facade import taxonomy
 
 
 # =====================================================
@@ -172,7 +175,8 @@ class InputProcessor:
 
         try:
             age = int(age_str)
-        except:
+        except (ValueError, TypeError) as e:
+            logger.debug(f"Could not parse age '{age_str}': {e}")
             age = 0
 
 
@@ -184,10 +188,13 @@ class InputProcessor:
         )
         if str(education_level).lower() == "unknown":
             education_level = "unknown"
+            logger.warning(f"Unknown education level received: '{edu_raw}' - scoring accuracy may be reduced")
 
 
         # Interests
         interests = profile_dict.get("interests", [])
+        if not interests:
+            logger.warning("Empty interests list received - scoring accuracy may be reduced")
 
         interest_tags = sorted(self.taxonomy.resolve_interests(
             interests or [],

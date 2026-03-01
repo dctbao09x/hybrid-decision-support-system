@@ -9,13 +9,13 @@ import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from processor import process_user_profile
-from rule_engine.rule_engine import RuleEngine
-from rule_engine.job_database import (
+from backend.processor import process_user_profile
+from backend.rule_engine.rule_engine import RuleEngine
+from backend.rule_engine.job_database import (
     get_job_requirements,
     get_all_jobs
 )
-from embedding_engine import match_careers
+from backend.embedding_engine import match_careers
 from .utils import build_profile_dict, slugify, icon_for_domain
 
 
@@ -127,7 +127,7 @@ def get_recommendations(request: RecommendationsRequest):
             "domain": domain,
             "description": reqs.get(
                 "description",
-                f"{job_name} thu???c l??nh v???c {domain}."
+                f"{job_name} thuộc lĩnh vực {domain}."
             ),
             "matchScore": round(float(job_eval.get("score", 0.0)), 3),
             "growthRate": float(reqs.get("growth_rate", 0.5)),

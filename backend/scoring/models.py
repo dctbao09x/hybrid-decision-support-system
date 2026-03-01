@@ -6,7 +6,7 @@ Data models for scoring engine (Pydantic v2 compatible, SIMGR standard).
 from __future__ import annotations
 
 from typing import List, Dict, Optional, Any
-from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from backend.scoring.taxonomy_adapter import (
     normalize_skill_list,
@@ -22,8 +22,12 @@ from backend.scoring.taxonomy_adapter import (
 class BaseSchema(BaseModel):
     """Base schema with strict validation."""
 
+    # SECURITY: strict mode enabled to prevent implicit coercion.
+    # Required for deterministic contract enforcement.
     model_config = ConfigDict(
         extra="forbid",
+        strict=True,
+        validate_default=True,
         validate_assignment=True,
         str_strip_whitespace=True
     )
@@ -83,7 +87,7 @@ class UserProfile(BaseSchema):
         description="User's career interests"
     )
     education_level: str = Field(
-        default="bachelor",
+        default="Bachelor",
         description="Highest education level"
     )
     ability_score: float = Field(
@@ -99,11 +103,11 @@ class UserProfile(BaseSchema):
         description="Self-assessed confidence score"
     )
 
-    # Validators
+    # Validators — single canonical pass via taxonomy
     @field_validator("skills", "interests", mode="before")
     @classmethod
     def normalize_lists(cls, v: Optional[List[str]], info) -> List[str]:
-        """Normalize skill/interest lists via taxonomy."""
+        """Normalize skill/interest lists via taxonomy (single pass)."""
         if info.field_name == "skills":
             return normalize_skill_list(v)
         return normalize_interest_list(v)
@@ -113,6 +117,167 @@ class UserProfile(BaseSchema):
     def normalize_edu(cls, v: Optional[str]) -> str:
         """Normalize education level via taxonomy."""
         return normalize_education(v)
+
+
+# ==============================================
+# Strict Scoring Input Components
+# (All components are mandatory — no defaults, no Optional)
+# ==============================================
+
+class PersonalProfileComponent(BaseSchema):
+    """Mandatory personal profile component for scoring input.
+
+    Both ability_score and confidence_score are required.
+    interests must contain at least one entry.
+
+    No defaults. No Optional fields. No auto-fill.
+    """
+    ability_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Self-assessed ability score [0, 1]. REQUIRED.",
+    )
+    confidence_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Self-assessed confidence score [0, 1]. REQUIRED.",
+    )
+    interests: List[str] = Field(
+        ...,
+        min_length=1,
+        description="Career interests — at least 1 required.",
+    )
+
+
+class ExperienceComponent(BaseSchema):
+    """Mandatory experience component for scoring input.
+
+    No defaults. Caller must supply years and domains.
+    """
+    years: int = Field(
+        ...,
+        ge=0,
+        description="Years of relevant experience. REQUIRED.",
+    )
+    domains: List[str] = Field(
+        ...,
+        description="Experience domains/fields. REQUIRED.",
+    )
+
+
+class GoalsComponent(BaseSchema):
+    """Mandatory goals component for scoring input.
+
+    At least one career aspiration is required.
+    """
+    career_aspirations: List[str] = Field(
+        ...,
+        min_length=1,
+        description="Career aspirations — at least 1 required.",
+    )
+    timeline_years: int = Field(
+        ...,
+        ge=0,
+        description="Goal timeline in years. REQUIRED.",
+    )
+
+
+class EducationComponent(BaseSchema):
+    """Mandatory education component for scoring input.
+
+    Both level and field_of_study must be explicitly supplied.
+    """
+    level: str = Field(
+        ...,
+        description="Highest education level. REQUIRED.",
+    )
+    field_of_study: str = Field(
+        ...,
+        description="Field / major of study. REQUIRED.",
+    )
+
+    @field_validator("level", mode="before")
+    @classmethod
+    def normalize_level(cls, v: Optional[str]) -> str:
+        """Normalize education level via taxonomy."""
+        return normalize_education(v)
+
+
+class PreferencesComponent(BaseSchema):
+    """Mandatory preferences component for scoring input.
+
+    At least one preferred domain and explicit work style are required.
+    """
+    preferred_domains: List[str] = Field(
+        ...,
+        min_length=1,
+        description="Preferred career domains — at least 1 required.",
+    )
+    work_style: str = Field(
+        ...,
+        description="Preferred work style (e.g. 'remote', 'in-office'). REQUIRED.",
+    )
+
+
+class ScoringInput(BaseSchema):
+    """Strict scoring input schema.
+
+    ALL SIX components are mandatory.
+    No defaults. No Optional fields. No silent fallbacks.
+
+    Scoring execution MUST NOT proceed unless this schema passes
+    validation. The validate_scoring_components() guard enforces
+    this at runtime before every scoring call.
+
+    Mandatory components
+    --------------------
+    personal_profile : PersonalProfileComponent
+    experience       : ExperienceComponent
+    goals            : GoalsComponent
+    skills           : List[str]  (min 1)
+    education        : EducationComponent
+    preferences      : PreferencesComponent
+
+    Invariants
+    ----------
+    - extra fields are FORBIDDEN (BaseSchema.extra = \"forbid\")
+    - strict mode prevents implicit type coercion
+    - validate_default = True catches wrong defaults at import time
+    """
+
+    personal_profile: PersonalProfileComponent = Field(
+        ...,
+        description="Personal profile. REQUIRED.",
+    )
+    experience: ExperienceComponent = Field(
+        ...,
+        description="Work / life experience. REQUIRED.",
+    )
+    goals: GoalsComponent = Field(
+        ...,
+        description="Career goals. REQUIRED.",
+    )
+    skills: List[str] = Field(
+        ...,
+        min_length=1,
+        description="User skills — at least 1 required.",
+    )
+    education: EducationComponent = Field(
+        ...,
+        description="Education details. REQUIRED.",
+    )
+    preferences: PreferencesComponent = Field(
+        ...,
+        description="User preferences. REQUIRED.",
+    )
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def normalize_skills(cls, v: Optional[List[str]]) -> List[str]:
+        """Normalize skills via taxonomy."""
+        return normalize_skill_list(v)
 
 
 # ==============================================
@@ -233,23 +398,23 @@ class ScoreBreakdown(BaseSchema):
     )
 
     # Optional detailed breakdowns
-    study_details: Optional[Dict[str, float]] = Field(
+    study_details: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Detailed study component breakdown"
     )
-    interest_details: Optional[Dict[str, float]] = Field(
+    interest_details: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Detailed interest component breakdown"
     )
-    market_details: Optional[Dict[str, float]] = Field(
+    market_details: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Detailed market component breakdown"
     )
-    growth_details: Optional[Dict[str, float]] = Field(
+    growth_details: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Detailed growth component breakdown"
     )
-    risk_details: Optional[Dict[str, float]] = Field(
+    risk_details: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Detailed risk component breakdown"
     )

@@ -1,16 +1,20 @@
 // src/components/layout/Header/Header.jsx
+/**
+ * Header - Simplified Navigation for 1-Button Pipeline
+ * 
+ * Only shows:
+ *   - Logo (links to main page)
+ *   - Admin link (for admin users)
+ */
 import { Link, useLocation } from 'react-router-dom';
 import styles from './Header.module.css';
 
 export default function Header() {
   const location = useLocation();
 
+  // Simplified nav - only main page (all functionality consolidated)
   const navItems = [
     { path: '/', label: 'Trang chủ' },
-    { path: '/assessment', label: 'Đánh giá' },
-    { path: '/chat', label: 'Tư vấn AI' },
-    { path: '/library', label: 'Thư viện nghề' },
-    { path: '/dashboard', label: 'Kết quả' }
   ];
 
   return (
@@ -18,8 +22,7 @@ export default function Header() {
       <div className="container">
         <div className={styles.content}>
           <Link to="/" className={styles.logo}>
-            <span className={styles.logoIcon}>🎯</span>
-            <span className={styles.logoText}>CareerAI</span>
+            <span className={styles.logoText}>DongSon Nexus</span>
           </Link>
 
           <nav className={styles.nav}>
@@ -35,10 +38,9 @@ export default function Header() {
           </nav>
 
           <div className={styles.actions}>
-            <Link to="/profile">
-              <button className={styles.profileButton}>
-                <span className={styles.avatar}>👤</span>
-              </button>
+            {/* Admin link - only for authenticated admins */}
+            <Link to="/admin/login" className={styles.adminLink}>
+              Admin
             </Link>
           </div>
         </div>

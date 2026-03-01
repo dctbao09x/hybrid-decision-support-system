@@ -150,7 +150,7 @@ class AIRelevanceRule(Rule):
     LOW_AI = 0.50
 
     AI_INTERESTS = {
-        "ai",
+        "AI",
         "artificial intelligence",
         "it",
         "technology",
@@ -163,7 +163,7 @@ class AIRelevanceRule(Rule):
         "deep learning",
         "tensorflow",
         "pytorch",
-        "ai"
+        "AI"
     }
 
     def __init__(self):

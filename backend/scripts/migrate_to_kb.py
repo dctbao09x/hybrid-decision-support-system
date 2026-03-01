@@ -43,8 +43,8 @@ logger = logging.getLogger("kb-migration")
 # IMPORTS
 # =====================================================
 
-from kb.database import reset_db
-from kb.seed import seed_all
+from backend.kb.database import reset_db
+from backend.kb.seed import seed_all
 
 
 # =====================================================

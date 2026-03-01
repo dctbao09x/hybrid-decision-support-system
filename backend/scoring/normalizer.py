@@ -11,10 +11,11 @@ Provides safe, deterministic utilities for:
 
 from __future__ import annotations
 
-from typing import Iterable, Sequence, Set, Union
+from typing import Iterable, Sequence, Set, Union, TYPE_CHECKING
 import math
 
-from backend.scoring.models import UserProfile
+if TYPE_CHECKING:
+    from backend.scoring.models import UserProfile
 
 Number = Union[int, float]
 
@@ -344,7 +345,7 @@ class Prompt3Normalizer:
     @staticmethod
     def normalize_user_profile_from_analyze(
         analyze_output: dict
-    ) -> UserProfile:
+    ):
         """Convert analyze.py output to UserProfile.
 
         Args:
@@ -364,6 +365,8 @@ class Prompt3Normalizer:
         Raises:
             ValueError: If required fields missing or invalid
         """
+        from backend.scoring.models import UserProfile  # Import here to avoid circular import
+
         # Validate required fields
         required_fields = [
             "age", "education_level", "interest_tags",

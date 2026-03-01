@@ -1,4 +1,4 @@
-from taxonomy.facade import taxonomy
+from backend.taxonomy.facade import taxonomy
 
 
 def test_skill_matching_vietnamese():
