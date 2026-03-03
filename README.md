@@ -11,21 +11,17 @@ DongSon Nexus is a career guidance decision support system built on a **Hybrid S
 2. [Solution Overview](#solution-overview)
 3. [Dependency Installation](#-dependency-installation)
 4. [How to Use](#-how-to-use)
-5. [Documentation](#-documentation)
-6. [System Architecture](#system-architecture)
-7. [Core Pipeline](#core-pipeline)
-8. [SIMGR Deterministic Scoring Engine](#simgr-deterministic-scoring-engine)
-9. [Explanation Layer (6-Stage XAI)](#explanation-layer-6-stage-xai)
-10. [Logging, Audit & Integrity](#logging-audit--integrity)
-11. [Evaluation & Drift Detection](#evaluation--drift-detection)
-12. [Admin & Operations Panels](#admin--operations-panels)
-13. [Technology Stack](#technology-stack)
-14. [Security & Governance](#security--governance)
-15. [Usage Guide](#usage-guide)
-16. [Impact & Value](#impact--value)
-17. [Comparison with Traditional Systems](#comparison-with-traditional-systems)
-18. [Deployment Note](#deployment-note)
-19. [Resources](#resources)
+5. [System Architecture](#system-architecture)
+6. [Core Pipeline](#core-pipeline)
+7. [SIMGR Deterministic Scoring Engine](#step-4--simgr-deterministic-scoring-engine)
+8. [Explanation Layer (6-Stage XAI)](#step-5--explanation-layer-6-stage-xai)
+9. [Logging, Audit & Integrity](#step-6--logging-audit--integrity)
+10. [Evaluation & Drift Detection](#evaluation--drift-detection)
+11. [Technology Stack](#technology-stack)
+12. [Security & Governance](#security--governance)
+13. [Impact & Value](#impact--value)
+14. [Comparison with Traditional Systems](#comparison-with-traditional-systems)
+15. [Resources](#resources)
 
 ---
 
@@ -33,7 +29,7 @@ DongSon Nexus is a career guidance decision support system built on a **Hybrid S
 
 Vietnam is in a **"golden demographic structure"** phase. However:
 
-- The rate of graduates working outside their field of study hovers at and exceeds **60%** across many sectors.
+- Over **60%** of graduates work outside their field of study across many sectors.
 - Training supply and labor market demand remain structurally misaligned.
 - Traditional career guidance tools (Holland, MBTI) are static and do not integrate real market data.
 
@@ -45,12 +41,14 @@ The core problem is not a lack of information — it is the absence of a **struc
 
 DongSon Nexus is designed as a **Hybrid Deterministic Decision Architecture**:
 
-- **Local Decision Engine** → Makes the decision
-- **API + LLM Layer** → Understands & interprets
-- **Market Data Integration** → Supply–demand context
-- **Audit Layer** → Reproducibility & verification
+| Layer | Role |
+|-------|------|
+| **Local Decision Engine** | Makes the decision |
+| **API + LLM Layer** | Understands & interprets |
+| **Market Data Integration** | Supply–demand context |
+| **Audit Layer** | Reproducibility & verification |
 
-Goals:
+**Goals:**
 - Personalization based on dynamic competency profiles
 - Multi-variable quantitative scoring
 - AI separated from decision authority
@@ -60,120 +58,59 @@ Goals:
 
 ## 📦 Dependency Installation
 
-The system is modular. Install according to your use case.
-
----
-
-### 1️⃣ Full System (Recommended)
-
-Install all frozen dependencies:
+### Full System *(Recommended)*
 
 ```bash
 pip install -r requirements.lock
 ```
 
-> ⚠️ This file is a production snapshot. **Do not edit manually.**
+> ⚠️ This file is a production snapshot. Do not edit manually.
 
----
-
-### 2️⃣ API Backend Only
+### Backend Only
 
 ```bash
 pip install -r backend/requirements_api.txt
 ```
 
-Includes:
-- FastAPI
-- Authentication (JWT, bcrypt)
-- Database ORM
-- Validation
-- API server runtime
-
----
-
-### 3️⃣ Data Pipeline
+### Data Pipeline
 
 ```bash
 pip install -r requirements_data_pipeline.txt
 ```
 
-Includes:
-- Web scraping
-- ETL
-- Market data processing
-- NLP & ML utilities
-- Monitoring
-
----
-
-### 4️⃣ Crawlers Only
+### Crawlers Only
 
 ```bash
 pip install -r requirements_crawler.txt
 ```
 
-Or:
-
-```bash
-pip install -r backend/crawlers/requirements_crawler.txt
-```
-
-Includes:
-- Selenium
-- Playwright
-- BeautifulSoup
-- lxml
-
 ---
 
 ## 🚀 How to Use
 
-### 1️⃣ Clone Repository
+### 1. Clone Repository
 
 ```bash
 git clone https://github.com/dctbao09x/hybrid-decision-support-system.git
 cd hybrid-decision-support-system
 ```
 
----
-
-### 2️⃣ Create Virtual Environment
+### 2. Create Virtual Environment
 
 ```bash
 python -m venv venv
 ```
 
-**Windows**
+**Windows:** `venv\Scripts\activate`  
+**macOS / Linux:** `source venv/bin/activate`
 
-```bash
-venv\Scripts\activate
-```
-
-**macOS / Linux**
-
-```bash
-source venv/bin/activate
-```
-
----
-
-### 3️⃣ Install Dependencies
-
-Full system:
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.lock
 ```
 
-Backend only:
-
-```bash
-pip install -r backend/requirements_api.txt
-```
-
----
-
-### 4️⃣ Run API Server
+### 4. Run API Server
 
 ```bash
 uvicorn backend.main:app --reload
@@ -184,66 +121,10 @@ uvicorn backend.main:app --reload
 | Default server | `http://127.0.0.1:8000` |
 | Swagger UI | `http://127.0.0.1:8000/docs` |
 
----
-
-### 5️⃣ Run Data Pipeline *(If Applicable)*
-
-Run ETL module:
-
-```bash
-python data_pipeline/run_pipeline.py
-```
-
-Or crawler:
-
-```bash
-python backend/crawlers/run_crawler.py
-```
-
----
-
-### 6️⃣ Run Tests
-
-```bash
-pytest
-```
-
-With coverage:
+### 5. Run Tests
 
 ```bash
 pytest --cov=.
-```
-
----
-
-## 📚 Documentation
-
-This README describes the system architecture and how to run the system.
-
-Detailed documentation includes:
-- System Architecture
-- Scoring Engine (SIMGR)
-- XAI Explanation Layer
-- Market Data Pipeline
-- Governance & Audit Design
-
-If the project has a `docs/` directory, you can build documentation using **Sphinx**:
-
-```bash
-cd docs
-make html
-```
-
-Or if Sphinx is already installed:
-
-```bash
-sphinx-build -b html docs/ docs/_build
-```
-
-Output will be generated at:
-
-```
-docs/_build/index.html
 ```
 
 ---
@@ -252,19 +133,23 @@ docs/_build/index.html
 
 ### Architectural Principles
 
-1. **Decision Isolation** — AI cannot override the scoring engine
-2. **Deterministic-First** — Same input always produces same output
-3. **Pure-Function Scoring** — No side effects in core scoring logic
-4. **Separation of Concerns** — Each layer has a single responsibility
-5. **Auditability by Design** — Every decision is traceable and reproducible
+| Principle | Description |
+|-----------|-------------|
+| **Decision Isolation** | AI cannot override the scoring engine |
+| **Deterministic-First** | Same input always produces same output |
+| **Pure-Function Scoring** | No side effects in core scoring logic |
+| **Separation of Concerns** | Each layer has a single responsibility |
+| **Auditability by Design** | Every decision is traceable and reproducible |
 
-### Hybrid Model
+### Pipeline Overview
 
 ```
 User → API Layer → Normalization → LLM Feature Extraction
      → Knowledge Base Mapping → SIMGR Core → Ranking
      → XAI Explanation → API Response
 ```
+
+![System Architecture](https://raw.githubusercontent.com/dctbao09x/hybrid-decision-support-system/685dfa40ffad23d3205b194622354881d54c8ec3/System%20Architecture.png)
 
 ---
 
@@ -308,7 +193,9 @@ Internal ontology:
 
 ---
 
-## SIMGR Deterministic Scoring Engine
+## Step 4 — SIMGR Deterministic Scoring Engine
+
+![SIMGR Structure](https://raw.githubusercontent.com/dctbao09x/hybrid-decision-support-system/685dfa40ffad23d3205b194622354881d54c8ec3/SIMGR%20Structure.png)
 
 ### Formula
 
@@ -319,31 +206,13 @@ Clamped to [0, 1]
 
 ### Components
 
-#### 1. Study Component (S)
-- 40% Academic performance
-- 30% Standardized test scores
-- 30% Skill assessments
-
-#### 2. Interest Component (I)
-Matches user interests against a career taxonomy.
-
-#### 3. Market Component (M)
-```
-M = f(N, G, L)
-```
-- **N**: Number of job postings
-- **G**: Industry growth rate
-- **L**: Median salary
-
-#### 4. Growth Component (G)
-Long-term industry trend analysis.
-
-#### 5. Risk Component (R)
-Penalty factors:
-- Automation risk
-- Market saturation
-- Training cost
-- Unemployment rate
+| Component | Weight Breakdown |
+|-----------|-----------------|
+| **S — Study** | 40% Academic · 30% Standardized Tests · 30% Skill Assessments |
+| **I — Interest** | User interests matched against career taxonomy |
+| **M — Market** | `f(N, G, L)` → Job postings · Growth rate · Median salary |
+| **G — Growth** | Long-term industry trend analysis |
+| **R — Risk** | Automation risk · Market saturation · Training cost · Unemployment |
 
 ### Engine Structure
 
@@ -356,15 +225,9 @@ Penalty factors:
 
 ---
 
-## Explanation Layer (6-Stage XAI)
+## Step 5 — Explanation Layer (6-Stage XAI)
 
-Implemented using:
-- **SHAP**
-- **Python**
-- **Ollama**
-- **FastAPI**
-
-### Pipeline
+Implemented using **SHAP**, **Python**, **Ollama**, and **FastAPI**.
 
 | Stage | Component |
 |-------|-----------|
@@ -375,30 +238,17 @@ Implemented using:
 | 5 | Frontend Rendering |
 | 6 | User Feedback Capture |
 
-Constraints:
-- Does **not** alter scores
-- Fully isolated from the Decision Core
+> ⚠️ Does **not** alter scores. Fully isolated from the Decision Core.
 
 **Output:** `explanation_payload`
 
 ---
 
-## Logging, Audit & Integrity
+## Step 6 — Logging, Audit & Integrity
 
-### Append-Only Logging
+**Append-Only Logging** — Each entry records: input snapshot, feature vector, score breakdown, applied rules, and `decision_trace_id`.
 
-Each log entry records:
-- Input snapshot
-- Feature vector
-- Score breakdown
-- Applied rules
-- `decision_trace_id`
-
-### Hash-Chain Linking
-
-- SHA-256 chaining between entries
-- Tamper detection
-- Deterministic reconstruction
+**Hash-Chain Linking** — SHA-256 chaining between entries for tamper detection and deterministic reconstruction.
 
 ---
 
@@ -416,71 +266,20 @@ Each log entry records:
 
 ### Drift Monitoring
 
-Metrics used:
-- KL Divergence
-- Jensen-Shannon Divergence
-- Population Stability Index (PSI)
-
-**Drift condition:** `Divergence > adaptive threshold`
-
----
-
-## Admin & Operations Panels
-
-### Central Command
-- SLA monitoring
-- Error rate tracking
-- Model drift alerts
-- LLM health checks
-- Cost control
-
-### Knowledge Base Admin
-- Ontology versioning
-- Bulk import / export
-- Rollback support
-
-### MLOps Panel
-- Model training
-- Evaluation
-- Version management
-- Controlled retraining
-
-### Governance Panel
-- Approval workflow
-- SLA compliance tracking
-- Risk tracking
+Metrics: **KL Divergence**, **Jensen-Shannon Divergence**, **Population Stability Index (PSI)**  
+Drift condition: `Divergence > adaptive threshold`
 
 ---
 
 ## Technology Stack
 
-### Backend
-- Python 3.13
-- FastAPI
-- Uvicorn
-- Gunicorn
-
-### AI & ML
-- scikit-learn
-- PyTorch
-- SHAP
-- sentence-transformers
-- FAISS
-- Ollama
-
-### Data
-- PostgreSQL
-- Apache Airflow
-
-### Infrastructure
-- Kubernetes
-- Nginx
-- Prometheus
-- Grafana
-
-### Security
-- `cryptography` (Fernet / AES)
-- Environment-based secret handling
+| Layer | Technologies |
+|-------|-------------|
+| **Backend** | Python 3.13 · FastAPI · Uvicorn · Gunicorn |
+| **AI & ML** | scikit-learn · PyTorch · SHAP · sentence-transformers · FAISS · Ollama |
+| **Data** | PostgreSQL · Apache Airflow |
+| **Infrastructure** | Kubernetes · Nginx · Prometheus · Grafana |
+| **Security** | `cryptography` (Fernet / AES) · Environment-based secret handling |
 
 ---
 
@@ -490,21 +289,6 @@ Metrics used:
 - Sensitive attributes are excluded from decision variables
 - Consent-based data usage model
 - Continuous drift and bias monitoring
-
----
-
-## Usage Guide
-
-### User Flow
-
-1. Click **"Get Started"**
-2. Enter skills and proficiency levels
-3. Provide educational background
-4. Set career goals
-5. Confirm work experience
-6. Receive ranked results
-
-**Estimated time:** 3–5 minutes
 
 ---
 
@@ -520,27 +304,13 @@ Metrics used:
 ## Comparison with Traditional Systems
 
 | Criterion | Holland | MBTI | DongSon Nexus |
-|-----------|---------|------|---------------|
+|-----------|:-------:|:----:|:-------------:|
 | Basis | Personality | Personality | Actual competency |
 | Data source | Psychometric test | Self-assessment | Structured profile |
 | Quantitative scoring | Low | Low | SIMGR Score |
-| Market integration | No | No | Yes |
+| Market integration | ✗ | ✗ | ✓ |
 | Reproducibility | Limited | Limited | Deterministic |
 | Explanation | Qualitative | Qualitative | XAI score decomposition |
-
----
-
-## Deployment Note
-
-The system runs **locally** due to the following runtime requirements:
-
-- FastAPI backend
-- Python runtime
-- Ollama (local LLM inference)
-- ML pipeline
-- API server
-
-> GitHub Pages supports static hosting only and does not support backend runtimes.
 
 ---
 
@@ -551,3 +321,7 @@ The system runs **locally** due to the following runtime requirements:
 | 📁 Repository | [Google Drive](https://drive.google.com/file/d/1nQeEfx_YKKUmR8ni6RnXYMGakepwv1Si/view?usp=sharing) |
 | 🎬 Demo | [Google Drive](https://drive.google.com/file/d/1IXrOPDASQjcDbNf-IUIehBRGK0HMU2c5/view) |
 | 📄 Product Explanation | [Google Drive](https://drive.google.com/file/d/1luWNBk-OznCKBQ4Sl1YRDc77ygSJkPA7/view) |
+
+---
+
+> **Deployment Note:** The system runs locally due to FastAPI backend, Python runtime, Ollama (local LLM inference), and ML pipeline requirements. GitHub Pages supports static hosting only.
